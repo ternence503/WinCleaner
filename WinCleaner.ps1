@@ -6,7 +6,7 @@
     安全、雙語 (中/英) 系統清理工具，支援 Windows 7 ~ 11
     Safe bilingual (Chinese/English) system cleaner for Windows 7-11
 .VERSION
-    3.0
+    3.1
 .NOTES
     以系統管理員身份執行 / Run as Administrator
 #>
@@ -30,7 +30,7 @@ if (-not (Test-IsAdmin)) {
 }
 
 try {
-    $Host.UI.RawUI.WindowTitle = "WinCleaner v3.0 - Windows 系統清理工具"
+    $Host.UI.RawUI.WindowTitle = "WinCleaner v3.1 - Windows 系統清理工具"
     $Host.UI.RawUI.BufferSize  = New-Object System.Management.Automation.Host.Size(120, 3000)
     $Host.UI.RawUI.WindowSize  = New-Object System.Management.Automation.Host.Size(82, 42)
 } catch { }
@@ -157,8 +157,8 @@ function Show-Header {
     Write-C ""
     Write-C "  +========================================================+" -Color Cyan
     Write-C "  |                                                        |" -Color Cyan
-    Write-C "  |        Windows 系統安全清理工具  v3.0                 |" -Color Yellow
-    Write-C "  |        WinCleaner - Windows Security Cleaner v3.0     |" -Color White
+    Write-C "  |        Windows 系統安全清理工具  v3.1                 |" -Color Yellow
+    Write-C "  |        WinCleaner - Windows Security Cleaner v3.1     |" -Color White
     Write-C "  |                                                        |" -Color Cyan
     Write-C "  +========================================================+" -Color Cyan
     Write-C ""
