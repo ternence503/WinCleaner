@@ -240,7 +240,7 @@ function Show-SystemInfo {
     Write-C "  ─────────────────────────────────────────────────────" -Color DarkGray
     Write-C ""
     try {
-        $os = Get-WmiObject -Class Win32_OperatingSystem -ErrorAction Stop
+        $os = Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop
         Write-C "  作業系統: $($os.Caption) (Build $($os.BuildNumber))" -Color White
         $totalRAM = [math]::Round($os.TotalVisibleMemorySize / 1MB, 1)
         $freeRAM  = [math]::Round($os.FreePhysicalMemory / 1MB, 1)
@@ -540,6 +540,9 @@ function Clear-ThumbnailCache {
     try {
         if ($script:WinVersion -ge 8) { & ie4uinit.exe -show 2>$null }
         if (Test-Path $thumbPath) {
+            Write-Host ""
+            Write-C "  [!] 桌面將短暫消失約 1~2 秒，屬正常現象 / Desktop will briefly disappear for ~2 sec" -Color Yellow
+            Start-Sleep -Milliseconds 500
             Stop-Process -Name explorer -Force -EA SilentlyContinue
             Start-Sleep -Milliseconds 800
             Get-ChildItem -LiteralPath $thumbPath -Filter "thumbcache_*.db" -EA SilentlyContinue |
@@ -669,8 +672,11 @@ function Clear-LogFiles {
 
 function Optimize-RAM {
     Show-TaskStart "RAM Optimization" "記憶體最佳化"
+    Write-Host ""
+    Write-C "  [!] 注意：此功能將閒置記憶體移至分頁檔，SSD 電腦效果較好，HDD 電腦可能短暫變慢" -Color DarkYellow
+    Write-C "      Note: Moves idle RAM to pagefile. Better on SSD; HDD may feel slower briefly." -Color DarkGray
     try {
-        $wmi      = Get-WmiObject Win32_OperatingSystem -EA Stop
+        $wmi      = Get-CimInstance Win32_OperatingSystem -EA Stop
         $beforeMB = [long]([math]::Round($wmi.FreePhysicalMemory / 1KB, 0))
         $code = @'
 using System;
@@ -689,7 +695,7 @@ public class MemCleaner {
         Add-Type -TypeDefinition $code -Language CSharp -EA Stop
         [MemCleaner]::EmptyAll()
         Start-Sleep -Seconds 1
-        $wmiAfter = Get-WmiObject Win32_OperatingSystem
+        $wmiAfter = Get-CimInstance Win32_OperatingSystem
         $afterMB  = [long]([math]::Round($wmiAfter.FreePhysicalMemory / 1KB, 0))
         $gainMB   = [math]::Max(0, $afterMB - $beforeMB)
         Record-Result "RAM" "記憶體" ([long]($gainMB * 1MB))
