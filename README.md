@@ -40,9 +40,13 @@ Windows 7 / 8 / 8.1 / 10 / 11（所有版本）
 ## 更新日誌
 
 ### v3.1（2026-03-20）
-- 修正：繁體中文 Windows 執行 `.bat` 出現亂碼錯誤（移除 bat 內中文，改為純英文）
-- 修正：PS1 加入 UTF-8 BOM，解決 PowerShell 在中文系統讀取時語法錯誤
+- 修正：bat 檔在繁體中文 Windows 出現亂碼錯誤（移除 bat 內中文，改為純英文）
+- 修正：PS1 加入 UTF-8 BOM，解決 PowerShell 在中文系統語法錯誤
 - 修正：中文介面文字重疊顯示（將 `chcp 65001` 改為 `[Console]::OutputEncoding`）
+- 修正：Delivery Optimization 清理指令名稱錯誤（`Delete-` → `Clear-`）
+- 改善：清縮圖快取前加提示，避免使用者誤以為桌面當機
+- 改善：RAM 最佳化加注意說明（HDD 電腦可能短暫變慢）
+- 改善：`Get-WmiObject` 全面改為 `Get-CimInstance`，相容 PowerShell 7+
 
 ### v3.0
 - 初始發布
