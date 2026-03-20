@@ -1,4 +1,4 @@
-#Requires -Version 2.0
+﻿#Requires -Version 2.0
 <#
 .SYNOPSIS
     WinCleaner - Windows 系統安全清理工具 / Windows System Cleaner
