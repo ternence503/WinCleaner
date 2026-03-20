@@ -35,7 +35,7 @@ try {
     $Host.UI.RawUI.WindowSize  = New-Object System.Management.Automation.Host.Size(82, 42)
 } catch { }
 
-try { chcp 65001 | Out-Null } catch { }
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
 
 # ============================================================
