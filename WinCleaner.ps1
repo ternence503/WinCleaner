@@ -516,7 +516,7 @@ function Clear-DeliveryOptimization {
 
     # PS5+ 有原生指令
     if ($script:PSMajor -ge 5) {
-        try { Delete-DeliveryOptimizationCache -Force -EA SilentlyContinue } catch { }
+        try { Clear-DeliveryOptimizationCache -Force -EA SilentlyContinue } catch { }
     }
 
     Record-Result "Delivery Opt." "Delivery Optimization" $freed
