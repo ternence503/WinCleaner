@@ -6,7 +6,7 @@
     安全、雙語 (中/英) 系統清理工具，支援 Windows 7 ~ 11
     Safe bilingual (Chinese/English) system cleaner for Windows 7-11
 .VERSION
-    3.1
+    3.2
 .NOTES
     以系統管理員身份執行 / Run as Administrator
 #>
@@ -25,12 +25,26 @@ if (-not (Test-IsAdmin)) {
     Write-Host "需要管理員權限，正在請求... / Requesting administrator rights..." -ForegroundColor Yellow
     $scriptPath = $MyInvocation.MyCommand.Path
     $psArgs = "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`""
-    Start-Process powershell -ArgumentList $psArgs -Verb RunAs
+    try {
+        Start-Process powershell -ArgumentList $psArgs -Verb RunAs -ErrorAction Stop
+    } catch {
+        # 使用者在 UAC 視窗按了「否」，或系統拒絕提權 / user clicked "No" on UAC, or elevation was denied
+        Write-Host ""
+        Write-Host "  未取得管理員權限，工具無法執行。" -ForegroundColor Red
+        Write-Host "  請重新雙擊本檔案，並在跳出的視窗中點選「是」。" -ForegroundColor Red
+        Write-Host ""
+        Write-Host "  Administrator rights were not granted, so the tool cannot run." -ForegroundColor Red
+        Write-Host "  Please double-click this file again and click 'Yes' on the prompt." -ForegroundColor Red
+        Write-Host ""
+        Write-Host "  按任意鍵關閉 / Press any key to close..." -ForegroundColor DarkGray
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+        exit 1
+    }
     exit
 }
 
 try {
-    $Host.UI.RawUI.WindowTitle = "WinCleaner v3.1 - Windows 系統清理工具"
+    $Host.UI.RawUI.WindowTitle = "WinCleaner v3.2 - Windows 系統清理工具"
     $Host.UI.RawUI.BufferSize  = New-Object System.Management.Automation.Host.Size(120, 3000)
     $Host.UI.RawUI.WindowSize  = New-Object System.Management.Automation.Host.Size(82, 42)
 } catch { }
@@ -67,6 +81,19 @@ function Get-WindowsVersion {
             return 10
         }
         default { return 10 }
+    }
+}
+
+function Get-OSInfoCompat {
+    # PowerShell 3+ 用 Get-CimInstance；原生 Win7 的 PowerShell 2.0 沒有這個指令，fallback 回 Get-WmiObject
+    # PS3+ uses Get-CimInstance; stock Win7 PowerShell 2.0 lacks it, fallback to Get-WmiObject
+    try {
+        if ($script:PSMajor -ge 3) {
+            return Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop
+        }
+        return Get-WmiObject -Class Win32_OperatingSystem -ErrorAction Stop
+    } catch {
+        try { return Get-WmiObject -Class Win32_OperatingSystem -ErrorAction Stop } catch { return $null }
     }
 }
 
@@ -157,8 +184,8 @@ function Show-Header {
     Write-C ""
     Write-C "  +========================================================+" -Color Cyan
     Write-C "  |                                                        |" -Color Cyan
-    Write-C "  |        Windows 系統安全清理工具  v3.1                 |" -Color Yellow
-    Write-C "  |        WinCleaner - Windows Security Cleaner v3.1     |" -Color White
+    Write-C "  |        Windows 系統安全清理工具  v3.2                 |" -Color Yellow
+    Write-C "  |        WinCleaner - Windows Security Cleaner v3.2     |" -Color White
     Write-C "  |                                                        |" -Color Cyan
     Write-C "  +========================================================+" -Color Cyan
     Write-C ""
@@ -239,14 +266,16 @@ function Show-SystemInfo {
     Write-C "  系統資訊 / System Information" -Color Cyan
     Write-C "  ─────────────────────────────────────────────────────" -Color DarkGray
     Write-C ""
-    try {
-        $os = Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop
+    $os = Get-OSInfoCompat
+    if ($os) {
         Write-C "  作業系統: $($os.Caption) (Build $($os.BuildNumber))" -Color White
         $totalRAM = [math]::Round($os.TotalVisibleMemorySize / 1MB, 1)
         $freeRAM  = [math]::Round($os.FreePhysicalMemory / 1MB, 1)
         $usedRAM  = [math]::Round($totalRAM - $freeRAM, 1)
         Write-C "  記憶體:   使用 ${usedRAM}GB / 總計 ${totalRAM}GB  (可用 ${freeRAM}GB)" -Color White
-    } catch { Write-C "  系統資訊讀取失敗" -Color Red }
+    } else {
+        Write-C "  系統資訊讀取失敗" -Color Red
+    }
     Write-C ""
     Write-C "  磁碟空間 / Disk Space:" -Color Cyan
     try {
@@ -675,9 +704,10 @@ function Optimize-RAM {
     Write-Host ""
     Write-C "  [!] 注意：此功能將閒置記憶體移至分頁檔，SSD 電腦效果較好，HDD 電腦可能短暫變慢" -Color DarkYellow
     Write-C "      Note: Moves idle RAM to pagefile. Better on SSD; HDD may feel slower briefly." -Color DarkGray
+    $before   = Get-OSInfoCompat
+    $beforeMB = if ($before) { [long]([math]::Round($before.FreePhysicalMemory / 1KB, 0)) } else { $null }
+
     try {
-        $wmi      = Get-CimInstance Win32_OperatingSystem -EA Stop
-        $beforeMB = [long]([math]::Round($wmi.FreePhysicalMemory / 1KB, 0))
         $code = @'
 using System;
 using System.Runtime.InteropServices;
@@ -695,15 +725,24 @@ public class MemCleaner {
         Add-Type -TypeDefinition $code -Language CSharp -EA Stop
         [MemCleaner]::EmptyAll()
         Start-Sleep -Seconds 1
-        $wmiAfter = Get-CimInstance Win32_OperatingSystem
-        $afterMB  = [long]([math]::Round($wmiAfter.FreePhysicalMemory / 1KB, 0))
-        $gainMB   = [math]::Max(0, $afterMB - $beforeMB)
-        Record-Result "RAM" "記憶體" ([long]($gainMB * 1MB))
-        $script:TotalFreed += [long]($gainMB * 1MB)
+
+        $after   = Get-OSInfoCompat
+        $afterMB = if ($after) { [long]([math]::Round($after.FreePhysicalMemory / 1KB, 0)) } else { $null }
+
         Write-Host ""
-        Write-C "  [v] RAM: " -Color Green -NoNewLine
-        Write-C "之前可用 ${beforeMB}MB → 現在可用 ${afterMB}MB " -Color White -NoNewLine
-        Write-C "(+${gainMB}MB)" -Color Yellow
+        if ($null -ne $beforeMB -and $null -ne $afterMB) {
+            $gainMB = [math]::Max(0, $afterMB - $beforeMB)
+            Record-Result "RAM" "記憶體" ([long]($gainMB * 1MB))
+            $script:TotalFreed += [long]($gainMB * 1MB)
+            Write-C "  [v] RAM: " -Color Green -NoNewLine
+            Write-C "之前可用 ${beforeMB}MB → 現在可用 ${afterMB}MB " -Color White -NoNewLine
+            Write-C "(+${gainMB}MB)" -Color Yellow
+        } else {
+            # 讀不到記憶體統計數字（極舊系統常見），但清理動作本身已確實執行
+            # Stats unavailable (common on very old systems), but the cleanup itself still ran
+            Record-Result "RAM" "記憶體" 0
+            Write-C "  [v] 記憶體最佳化已完成 / RAM optimization done" -Color Green
+        }
     } catch {
         Write-Host ""
         Write-C "  [-] 記憶體最佳化失敗" -Color DarkGray

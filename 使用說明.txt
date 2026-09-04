@@ -1,5 +1,5 @@
 ╔══════════════════════════════════════════════════════╗
-║       WinCleaner v3.1  使用說明 / User Guide         ║
+║       WinCleaner v3.2  使用說明 / User Guide         ║
 ╚══════════════════════════════════════════════════════╝
 
 【如何使用 / How to Use】
@@ -66,6 +66,22 @@
 
 【常見問題 / FAQ】
 
+  Q: 雙擊後出現藍色「Windows 已保護您的電腦」視窗
+  A: 這是 Windows SmartScreen 對非知名發布者程式的正常警示，屬預期行為。
+     點選視窗中的「其他資訊」，再點「仍要執行」即可繼續。
+
+  Q: A blue "Windows protected your PC" screen appears after double-clicking
+  A: This is normal SmartScreen behavior for tools without a paid code
+     signing certificate. Click "More info", then "Run anyway" to continue.
+
+  Q: 出現 UAC 視窗後我不小心點了「否」
+  A: 沒關係，工具會顯示提示並安全結束，重新雙擊「啟動清理工具.bat」
+     再點「是」即可，不會有任何檔案被誤刪。
+
+  Q: I accidentally clicked "No" on the UAC prompt
+  A: No problem — the tool shows a message and exits safely. Just double-click
+     "啟動清理工具.bat" again and click "Yes" this time.
+
   Q: 執行後顯示「此系統上禁止執行腳本」
   A: 使用「啟動清理工具.bat」而非直接執行 .ps1
 
@@ -86,6 +102,14 @@
 
 
 【版本更新 / Changelog】
+
+  v3.2（2026-09-04）
+  - 修正：原生 Windows 7（PowerShell 2.0）讀不到系統資訊、記憶體最佳化完全失效
+    的問題，改為自動 fallback 回相容指令
+  - 修正：點選 UAC 視窗「否」會顯示一堆看不懂的錯誤訊息後閃退，改為清楚的
+    中英文提示並可安全重試
+  - 修正：啟動器 .bat 內誤用 Mac/Linux 語法（/dev/null），Windows 上無效
+  - 新增：SmartScreen 藍色警示視窗、UAC 誤按「否」的 FAQ 說明
 
   v3.1（2026-03-20）
   - 修正：bat 檔在繁體中文 Windows 出現亂碼錯誤

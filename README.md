@@ -1,4 +1,4 @@
-# WinCleaner v3.1 - Windows 系統安全清理工具
+# WinCleaner v3.2 - Windows 系統安全清理工具
 
 一款安全、有感、小白也能上手的 Windows 系統清理工具。
 清理完會告訴你釋放了多少空間，讓你真的感受到差異。
@@ -38,6 +38,12 @@ Windows 7 / 8 / 8.1 / 10 / 11（所有版本）
 - 啟動項目停用可隨時從工作管理員還原
 
 ## 更新日誌
+
+### v3.2（2026-09-04）
+- 修正：原生 Windows 7（PowerShell 2.0）讀不到系統資訊、記憶體最佳化完全失效（`Get-CimInstance` 需要 PS3+，改為自動 fallback 回 `Get-WmiObject`）
+- 修正：UAC 視窗點「否」時會顯示未處理例外後閃退，改為清楚提示並可安全重試
+- 修正：啟動器 `.bat` 誤用 Unix 語法 `/dev/null`，改回 Windows 的 `nul`
+- 新增：使用說明補上 SmartScreen 警示、UAC 誤按「否」的 FAQ
 
 ### v3.1（2026-03-20）
 - 修正：bat 檔在繁體中文 Windows 出現亂碼錯誤（移除 bat 內中文，改為純英文）
