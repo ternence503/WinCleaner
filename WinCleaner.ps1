@@ -6,7 +6,7 @@
     安全、雙語 (中/英) 系統清理工具，支援 Windows 7 ~ 11
     Safe bilingual (Chinese/English) system cleaner for Windows 7-11
 .VERSION
-    3.5
+    3.6
 .NOTES
     以系統管理員身份執行 / Run as Administrator
 #>
@@ -39,6 +39,18 @@ function Write-C {
     }
 }
 
+try {
+    # 主控台實際使用的 codepage 要跟著切成 UTF-8，否則只設定 Console.OutputEncoding
+    # 兩邊對不上，中文會被用錯誤的 codepage 解讀成亂碼（chcp.com 是獨立執行檔，
+    # 用 Out-Null 吃掉它印出的「作用中的字碼頁: 65001」文字，避免殘留畫面）
+    # The console's actual codepage must switch to UTF-8 too, or it'll misdecode
+    # Chinese bytes into garbage even with Console.OutputEncoding set (chcp.com is a
+    # real executable; Out-Null suppresses its "Active code page: 65001" banner)
+    & chcp.com 65001 | Out-Null
+} catch { }
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+
 if (-not (Test-IsAdmin)) {
     Write-C "需要管理員權限，正在請求... / Requesting administrator rights..." Yellow
     $scriptPath = $MyInvocation.MyCommand.Path
@@ -62,13 +74,10 @@ if (-not (Test-IsAdmin)) {
 }
 
 try {
-    $Host.UI.RawUI.WindowTitle = "WinCleaner v3.5 - Windows 系統清理工具"
+    $Host.UI.RawUI.WindowTitle = "WinCleaner v3.6 - Windows 系統清理工具"
     $Host.UI.RawUI.BufferSize  = New-Object System.Management.Automation.Host.Size(120, 3000)
     $Host.UI.RawUI.WindowSize  = New-Object System.Management.Automation.Host.Size(82, 42)
 } catch { }
-
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-$OutputEncoding = [System.Text.Encoding]::UTF8
 
 # ============================================================
 # SECTION 2: GLOBAL STATE / 全域變數
@@ -196,8 +205,8 @@ function Show-Header {
     Write-C ""
     Write-C "  +========================================================+" -Color Cyan
     Write-C "  |                                                        |" -Color Cyan
-    Write-C "  |        Windows 系統安全清理工具  v3.5                 |" -Color Yellow
-    Write-C "  |        WinCleaner - Windows Security Cleaner v3.5     |" -Color White
+    Write-C "  |        Windows 系統安全清理工具  v3.6                 |" -Color Yellow
+    Write-C "  |        WinCleaner - Windows Security Cleaner v3.6     |" -Color White
     Write-C "  |                                                        |" -Color Cyan
     Write-C "  +========================================================+" -Color Cyan
     Write-C ""
