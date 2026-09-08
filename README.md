@@ -1,4 +1,4 @@
-# WinCleaner v3.7 - Windows 系統安全清理工具
+# WinCleaner v3.8 - Windows 系統安全清理工具
 
 一款安全、有感、小白也能上手的 Windows 系統清理工具。
 清理完會告訴你釋放了多少空間，讓你真的感受到差異。
@@ -40,6 +40,9 @@ Windows 7 / 8 / 8.1 / 10 / 11（所有版本）
 - 啟動項目停用可隨時從工作管理員還原
 
 ## 更新日誌
+
+### v3.8（2026-09-08，暫時診斷版）
+- v3.7 也沒解決中文亂碼（症狀跟 v3.6 完全相同），代表問題不在 chcp/編碼設定這一層。加了一段暫時的純 ASCII 診斷輸出，印出主控台實際的 codepage 與編碼狀態以找出真正原因；確認後會移除這段診斷代碼
 
 ### v3.7（2026-09-08，放棄 Win7 強制 UTF-8）
 - 修正：v3.6 把 `chcp` 跟 `Console.OutputEncoding` 都設成 UTF-8 後，中文在原生 Win7 上還是亂碼。查證後確認這是 Windows 7 舊版主控台（點陣字型 Raster Fonts）對 codepage 65001 支援不完整的已知限制（見 [microsoft/terminal#16701](https://github.com/microsoft/terminal/issues/16701)），不是編碼沒對齊。改為只在 PowerShell 3+／Windows 8 以後才切換 UTF-8；PS2／原生 Win7 維持系統原生 codepage（例如繁體中文的 950），本來就能正確顯示中文

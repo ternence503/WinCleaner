@@ -6,7 +6,7 @@
     安全、雙語 (中/英) 系統清理工具，支援 Windows 7 ~ 11
     Safe bilingual (Chinese/English) system cleaner for Windows 7-11
 .VERSION
-    3.7
+    3.8
 .NOTES
     以系統管理員身份執行 / Run as Administrator
 #>
@@ -80,7 +80,7 @@ if (-not (Test-IsAdmin)) {
 }
 
 try {
-    $Host.UI.RawUI.WindowTitle = "WinCleaner v3.7 - Windows 系統清理工具"
+    $Host.UI.RawUI.WindowTitle = "WinCleaner v3.8 - Windows 系統清理工具"
     $Host.UI.RawUI.BufferSize  = New-Object System.Management.Automation.Host.Size(120, 3000)
     $Host.UI.RawUI.WindowSize  = New-Object System.Management.Automation.Host.Size(82, 42)
 } catch { }
@@ -211,8 +211,8 @@ function Show-Header {
     Write-C ""
     Write-C "  +========================================================+" -Color Cyan
     Write-C "  |                                                        |" -Color Cyan
-    Write-C "  |        Windows 系統安全清理工具  v3.7                 |" -Color Yellow
-    Write-C "  |        WinCleaner - Windows Security Cleaner v3.7     |" -Color White
+    Write-C "  |        Windows 系統安全清理工具  v3.8                 |" -Color Yellow
+    Write-C "  |        WinCleaner - Windows Security Cleaner v3.8     |" -Color White
     Write-C "  |                                                        |" -Color Cyan
     Write-C "  +========================================================+" -Color Cyan
     Write-C ""
@@ -1045,6 +1045,29 @@ function Show-Summary {
 # ============================================================
 
 $script:WinVersion = Get-WindowsVersion
+
+# ============================================================
+# TEMP DIAGNOSTIC (v3.8) - 中文亂碼一直查不出根因，先印出實際編碼狀態
+# 用純 ASCII/數字輸出，不受亂碼問題影響。確認根因後這段會移除
+# Chinese mojibake root cause still unconfirmed after several fixes that
+# didn't change the symptom at all. Dump actual encoding state in plain
+# ASCII/numbers (immune to the mojibake itself) before guessing again.
+# This block will be removed once the real cause is confirmed.
+# ============================================================
+[Console]::WriteLine("========== DIAG (v3.8) ==========")
+try { [Console]::WriteLine("chcp raw output below:") ; & chcp.com } catch { [Console]::WriteLine("chcp failed: " + $_.Exception.Message) }
+try { [Console]::WriteLine("Console.OutputEncoding = " + [Console]::OutputEncoding.EncodingName + " (CodePage " + [Console]::OutputEncoding.CodePage + ")") } catch { [Console]::WriteLine("OutputEncoding read failed: " + $_.Exception.Message) }
+try { [Console]::WriteLine("Console.InputEncoding  = " + [Console]::InputEncoding.EncodingName + " (CodePage " + [Console]::InputEncoding.CodePage + ")") } catch { [Console]::WriteLine("InputEncoding read failed: " + $_.Exception.Message) }
+try { [Console]::WriteLine("System Default ANSI Encoding = " + [System.Text.Encoding]::Default.EncodingName + " (CodePage " + [System.Text.Encoding]::Default.CodePage + ")") } catch { [Console]::WriteLine("Default encoding read failed: " + $_.Exception.Message) }
+try { [Console]::WriteLine("PSCulture = " + $PSCulture + "  PSUICulture = " + $PSUICulture) } catch { }
+try { [Console]::WriteLine("OutputEncoding var = " + $OutputEncoding.EncodingName + " (CodePage " + $OutputEncoding.CodePage + ")") } catch { }
+[Console]::WriteLine("PSVersion = " + $PSVersionTable.PSVersion.ToString())
+[Console]::WriteLine("==================================")
+[Console]::WriteLine("Press any key to continue to the menu...")
+$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+# ============================================================
+# END TEMP DIAGNOSTIC
+# ============================================================
 
 while ($true) {
     $script:TotalFreed  = [long]0
