@@ -1,4 +1,4 @@
-# WinCleaner v3.3 - Windows 系統安全清理工具
+# WinCleaner v3.4 - Windows 系統安全清理工具
 
 一款安全、有感、小白也能上手的 Windows 系統清理工具。
 清理完會告訴你釋放了多少空間，讓你真的感受到差異。
@@ -40,6 +40,9 @@ Windows 7 / 8 / 8.1 / 10 / 11（所有版本）
 - 啟動項目停用可隨時從工作管理員還原
 
 ## 更新日誌
+
+### v3.4（2026-09-08，實機測試後再修正）
+- 修正：透過遠端桌面工具（AnyDesk 等）或部分虛擬機主控台執行時，`Write-Host -ForegroundColor` 讀取主控台緩衝區失敗，跳出大量 `device...not functioning` 錯誤洗版；`Write-C`/elevation 階段的彩色輸出現在讀取失敗時自動退回無色輸出
 
 ### v3.3（2026-09-08，實機 Windows 7 測試後修正）
 - 修正：主選單用了 `-in` 運算子（PowerShell 3.0+ 才有語法），原生 Win7 的 PowerShell 2.0 連整支腳本都無法解析，一啟動就報 parse error 閃退

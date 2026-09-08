@@ -6,7 +6,7 @@
     安全、雙語 (中/英) 系統清理工具，支援 Windows 7 ~ 11
     Safe bilingual (Chinese/English) system cleaner for Windows 7-11
 .VERSION
-    3.3
+    3.4
 .NOTES
     以系統管理員身份執行 / Run as Administrator
 #>
@@ -21,8 +21,15 @@ function Test-IsAdmin {
     return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
+function Write-Safe {
+    # 部分遠端/虛擬主控台無法讀取緩衝區套用顏色，會丟出例外；退回無色輸出
+    # Some remote/virtual consoles can't read the buffer to apply color and throw; fall back to plain output
+    param([string]$Text, [ConsoleColor]$Color = [ConsoleColor]::White)
+    try { Write-Host $Text -ForegroundColor $Color -ErrorAction Stop } catch { Write-Host $Text }
+}
+
 if (-not (Test-IsAdmin)) {
-    Write-Host "需要管理員權限，正在請求... / Requesting administrator rights..." -ForegroundColor Yellow
+    Write-Safe "需要管理員權限，正在請求... / Requesting administrator rights..." Yellow
     $scriptPath = $MyInvocation.MyCommand.Path
     $psArgs = "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`""
     try {
@@ -30,13 +37,13 @@ if (-not (Test-IsAdmin)) {
     } catch {
         # 使用者在 UAC 視窗按了「否」，或系統拒絕提權 / user clicked "No" on UAC, or elevation was denied
         Write-Host ""
-        Write-Host "  未取得管理員權限，工具無法執行。" -ForegroundColor Red
-        Write-Host "  請重新雙擊本檔案，並在跳出的視窗中點選「是」。" -ForegroundColor Red
+        Write-Safe "  未取得管理員權限，工具無法執行。" Red
+        Write-Safe "  請重新雙擊本檔案，並在跳出的視窗中點選「是」。" Red
         Write-Host ""
-        Write-Host "  Administrator rights were not granted, so the tool cannot run." -ForegroundColor Red
-        Write-Host "  Please double-click this file again and click 'Yes' on the prompt." -ForegroundColor Red
+        Write-Safe "  Administrator rights were not granted, so the tool cannot run." Red
+        Write-Safe "  Please double-click this file again and click 'Yes' on the prompt." Red
         Write-Host ""
-        Write-Host "  按任意鍵關閉 / Press any key to close..." -ForegroundColor DarkGray
+        Write-Safe "  按任意鍵關閉 / Press any key to close..." DarkGray
         $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
         exit 1
     }
@@ -44,7 +51,7 @@ if (-not (Test-IsAdmin)) {
 }
 
 try {
-    $Host.UI.RawUI.WindowTitle = "WinCleaner v3.3 - Windows 系統清理工具"
+    $Host.UI.RawUI.WindowTitle = "WinCleaner v3.4 - Windows 系統清理工具"
     $Host.UI.RawUI.BufferSize  = New-Object System.Management.Automation.Host.Size(120, 3000)
     $Host.UI.RawUI.WindowSize  = New-Object System.Management.Automation.Host.Size(82, 42)
 } catch { }
@@ -121,8 +128,17 @@ function Format-Bytes {
 
 function Write-C {
     param([string]$Text, [ConsoleColor]$Color = [ConsoleColor]::White, [switch]$NoNewLine)
-    if ($NoNewLine) { Write-Host $Text -ForegroundColor $Color -NoNewline }
-    else            { Write-Host $Text -ForegroundColor $Color }
+    try {
+        if ($NoNewLine) { Write-Host $Text -ForegroundColor $Color -NoNewline -ErrorAction Stop }
+        else            { Write-Host $Text -ForegroundColor $Color -ErrorAction Stop }
+    } catch {
+        # 某些遠端/虛擬主控台（遠端桌面工具、部分虛擬機主控台）無法讀取主控台緩衝區
+        # 來套用顏色，會丟出 "device attached...not functioning" 錯誤；退回無色輸出
+        # Some remote/virtual consoles (remote desktop tools, some VM consoles) can't read
+        # the console buffer to apply color and throw a "device...not functioning" error;
+        # fall back to plain, uncolored output so the UI still renders
+        if ($NoNewLine) { Write-Host $Text -NoNewline } else { Write-Host $Text }
+    }
 }
 
 function Record-Result {
@@ -184,8 +200,8 @@ function Show-Header {
     Write-C ""
     Write-C "  +========================================================+" -Color Cyan
     Write-C "  |                                                        |" -Color Cyan
-    Write-C "  |        Windows 系統安全清理工具  v3.3                 |" -Color Yellow
-    Write-C "  |        WinCleaner - Windows Security Cleaner v3.3     |" -Color White
+    Write-C "  |        Windows 系統安全清理工具  v3.4                 |" -Color Yellow
+    Write-C "  |        WinCleaner - Windows Security Cleaner v3.4     |" -Color White
     Write-C "  |                                                        |" -Color Cyan
     Write-C "  +========================================================+" -Color Cyan
     Write-C ""
