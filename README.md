@@ -1,4 +1,4 @@
-# WinCleaner v3.9 - Windows 系統安全清理工具
+# WinCleaner v3.10 - Windows 系統安全清理工具
 
 一款安全、有感、小白也能上手的 Windows 系統清理工具。
 清理完會告訴你釋放了多少空間，讓你真的感受到差異。
@@ -40,6 +40,9 @@ Windows 7 / 8 / 8.1 / 10 / 11（所有版本）
 - 啟動項目停用可隨時從工作管理員還原
 
 ## 更新日誌
+
+### v3.10（2026-09-08，瀏覽器快取清理修正）
+- 修正：瀏覽器快取清理用了 `Get-ChildItem -Directory`（PowerShell 3.0+ 才有的參數），在 PowerShell 2.0／原生 Win7 上會報 `ParameterBindingException`，導致 Chrome/Edge/Firefox/Brave 快取清不到。改用 `Where-Object { $_.PSIsContainer }` 判斷資料夾，PS2 起相容
 
 ### v3.9（2026-09-08，真正修好中文亂碼）
 - 根因確認：v3.8 的診斷輸出顯示這台機器的主控台 codepage 早就是 65001（不是腳本設的），跟 `Console.OutputEncoding` 完全一致，中文卻依然亂碼——證實 Windows 7 舊版主控台的點陣字型（Raster Fonts）根本沒有 UTF-8 字型表，設定再一致也沒用；點陣字型只認得傳統 ANSI codepage（繁體中文是 950/Big5）

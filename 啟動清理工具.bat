@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 >nul 2>&1
-title WinCleaner v3.9
+title WinCleaner v3.10
 
 echo.
 echo  Starting WinCleaner...
