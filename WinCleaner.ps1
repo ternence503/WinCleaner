@@ -6,7 +6,7 @@
     安全、雙語 (中/英) 系統清理工具，支援 Windows 7 ~ 11
     Safe bilingual (Chinese/English) system cleaner for Windows 7-11
 .VERSION
-    3.6
+    3.7
 .NOTES
     以系統管理員身份執行 / Run as Administrator
 #>
@@ -39,17 +39,23 @@ function Write-C {
     }
 }
 
-try {
-    # 主控台實際使用的 codepage 要跟著切成 UTF-8，否則只設定 Console.OutputEncoding
-    # 兩邊對不上，中文會被用錯誤的 codepage 解讀成亂碼（chcp.com 是獨立執行檔，
-    # 用 Out-Null 吃掉它印出的「作用中的字碼頁: 65001」文字，避免殘留畫面）
-    # The console's actual codepage must switch to UTF-8 too, or it'll misdecode
-    # Chinese bytes into garbage even with Console.OutputEncoding set (chcp.com is a
-    # real executable; Out-Null suppresses its "Active code page: 65001" banner)
-    & chcp.com 65001 | Out-Null
-} catch { }
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-$OutputEncoding = [System.Text.Encoding]::UTF8
+if ($PSVersionTable.PSVersion.Major -ge 3) {
+    # 原生 Windows 7 的 PowerShell 2.0 主控台（舊版 conhost.exe + 預設點陣字型）對 codepage 65001
+    # (UTF-8) 的支援不完整，就算把 chcp 跟 Console.OutputEncoding 都設成 UTF-8，中文一樣會顯示亂碼
+    # （這是實機測試證實的，不是理論）。PowerShell 3+ / Windows 8 以後主控台對 UTF-8 支援較完整，
+    # 才在這裡切換；PS2 維持系統原生 codepage（例如繁體中文的 950）不去動，本來就能正確顯示中文
+    # Stock Windows 7's PowerShell 2.0 console (legacy conhost.exe + default raster font) has
+    # incomplete support for codepage 65001 (UTF-8) — Chinese still garbles even with both chcp
+    # and Console.OutputEncoding forced to UTF-8 (confirmed by real-device testing, not just
+    # theory). Only switch to UTF-8 on PS3+/Windows 8+, where console UTF-8 support is more
+    # complete; leave PS2 on the OS's native codepage (e.g. 950 for zh-TW), which already
+    # displays Chinese correctly without any override
+    try {
+        & chcp.com 65001 | Out-Null
+        [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+        $OutputEncoding = [System.Text.Encoding]::UTF8
+    } catch { }
+}
 
 if (-not (Test-IsAdmin)) {
     Write-C "需要管理員權限，正在請求... / Requesting administrator rights..." Yellow
@@ -74,7 +80,7 @@ if (-not (Test-IsAdmin)) {
 }
 
 try {
-    $Host.UI.RawUI.WindowTitle = "WinCleaner v3.6 - Windows 系統清理工具"
+    $Host.UI.RawUI.WindowTitle = "WinCleaner v3.7 - Windows 系統清理工具"
     $Host.UI.RawUI.BufferSize  = New-Object System.Management.Automation.Host.Size(120, 3000)
     $Host.UI.RawUI.WindowSize  = New-Object System.Management.Automation.Host.Size(82, 42)
 } catch { }
@@ -205,8 +211,8 @@ function Show-Header {
     Write-C ""
     Write-C "  +========================================================+" -Color Cyan
     Write-C "  |                                                        |" -Color Cyan
-    Write-C "  |        Windows 系統安全清理工具  v3.6                 |" -Color Yellow
-    Write-C "  |        WinCleaner - Windows Security Cleaner v3.6     |" -Color White
+    Write-C "  |        Windows 系統安全清理工具  v3.7                 |" -Color Yellow
+    Write-C "  |        WinCleaner - Windows Security Cleaner v3.7     |" -Color White
     Write-C "  |                                                        |" -Color Cyan
     Write-C "  +========================================================+" -Color Cyan
     Write-C ""
