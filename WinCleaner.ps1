@@ -6,7 +6,7 @@
     安全、雙語 (中/英) 系統清理工具，支援 Windows 7 ~ 11
     Safe bilingual (Chinese/English) system cleaner for Windows 7-11
 .VERSION
-    3.4
+    3.5
 .NOTES
     以系統管理員身份執行 / Run as Administrator
 #>
@@ -21,29 +21,40 @@ function Test-IsAdmin {
     return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
-function Write-Safe {
-    # 部分遠端/虛擬主控台無法讀取緩衝區套用顏色，會丟出例外；退回無色輸出
-    # Some remote/virtual consoles can't read the buffer to apply color and throw; fall back to plain output
-    param([string]$Text, [ConsoleColor]$Color = [ConsoleColor]::White)
-    try { Write-Host $Text -ForegroundColor $Color -ErrorAction Stop } catch { Write-Host $Text }
+function Write-C {
+    param([string]$Text, [ConsoleColor]$Color = [ConsoleColor]::White, [switch]$NoNewLine)
+    try {
+        if ($NoNewLine) { Write-Host $Text -ForegroundColor $Color -NoNewline -ErrorAction Stop }
+        else            { Write-Host $Text -ForegroundColor $Color -ErrorAction Stop }
+    } catch {
+        # 某些遠端/虛擬主控台（遠端桌面工具、部分虛擬機主控台）連 Write-Host（含無色）都會失敗，
+        # 丟出 "device attached...not functioning" 錯誤。改用 .NET Console 類別直接寫入輸出資料流，
+        # 完全繞過 PowerShell 主控台頁面緩衝區的操作
+        # Some remote/virtual consoles fail even plain (uncolored) Write-Host with a
+        # "device...not functioning" error. Fall back to raw .NET Console stream output,
+        # bypassing PowerShell's console screen-buffer manipulation entirely
+        try {
+            if ($NoNewLine) { [Console]::Write($Text) } else { [Console]::WriteLine($Text) }
+        } catch { }
+    }
 }
 
 if (-not (Test-IsAdmin)) {
-    Write-Safe "需要管理員權限，正在請求... / Requesting administrator rights..." Yellow
+    Write-C "需要管理員權限，正在請求... / Requesting administrator rights..." Yellow
     $scriptPath = $MyInvocation.MyCommand.Path
     $psArgs = "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`""
     try {
         Start-Process powershell -ArgumentList $psArgs -Verb RunAs -ErrorAction Stop
     } catch {
         # 使用者在 UAC 視窗按了「否」，或系統拒絕提權 / user clicked "No" on UAC, or elevation was denied
-        Write-Host ""
-        Write-Safe "  未取得管理員權限，工具無法執行。" Red
-        Write-Safe "  請重新雙擊本檔案，並在跳出的視窗中點選「是」。" Red
-        Write-Host ""
-        Write-Safe "  Administrator rights were not granted, so the tool cannot run." Red
-        Write-Safe "  Please double-click this file again and click 'Yes' on the prompt." Red
-        Write-Host ""
-        Write-Safe "  按任意鍵關閉 / Press any key to close..." DarkGray
+        Write-C ""
+        Write-C "  未取得管理員權限，工具無法執行。" Red
+        Write-C "  請重新雙擊本檔案，並在跳出的視窗中點選「是」。" Red
+        Write-C ""
+        Write-C "  Administrator rights were not granted, so the tool cannot run." Red
+        Write-C "  Please double-click this file again and click 'Yes' on the prompt." Red
+        Write-C ""
+        Write-C "  按任意鍵關閉 / Press any key to close..." DarkGray
         $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
         exit 1
     }
@@ -51,7 +62,7 @@ if (-not (Test-IsAdmin)) {
 }
 
 try {
-    $Host.UI.RawUI.WindowTitle = "WinCleaner v3.4 - Windows 系統清理工具"
+    $Host.UI.RawUI.WindowTitle = "WinCleaner v3.5 - Windows 系統清理工具"
     $Host.UI.RawUI.BufferSize  = New-Object System.Management.Automation.Host.Size(120, 3000)
     $Host.UI.RawUI.WindowSize  = New-Object System.Management.Automation.Host.Size(82, 42)
 } catch { }
@@ -126,21 +137,6 @@ function Format-Bytes {
     return "0 B"
 }
 
-function Write-C {
-    param([string]$Text, [ConsoleColor]$Color = [ConsoleColor]::White, [switch]$NoNewLine)
-    try {
-        if ($NoNewLine) { Write-Host $Text -ForegroundColor $Color -NoNewline -ErrorAction Stop }
-        else            { Write-Host $Text -ForegroundColor $Color -ErrorAction Stop }
-    } catch {
-        # 某些遠端/虛擬主控台（遠端桌面工具、部分虛擬機主控台）無法讀取主控台緩衝區
-        # 來套用顏色，會丟出 "device attached...not functioning" 錯誤；退回無色輸出
-        # Some remote/virtual consoles (remote desktop tools, some VM consoles) can't read
-        # the console buffer to apply color and throw a "device...not functioning" error;
-        # fall back to plain, uncolored output so the UI still renders
-        if ($NoNewLine) { Write-Host $Text -NoNewline } else { Write-Host $Text }
-    }
-}
-
 function Record-Result {
     param([string]$NameEN, [string]$NameCN, [long]$Freed)
     $null = $script:TaskResults.Add(@{EN=$NameEN; CN=$NameCN; Freed=$Freed})
@@ -155,7 +151,7 @@ function Show-TaskStart {
 
 function Show-TaskDone {
     param([long]$Freed, [string]$Label = "")
-    Write-Host ""
+    Write-C ""
     if ($Label -ne "") {
         Write-C "  [v] $Label" -Color Green
     } elseif ($Freed -gt 0) {
@@ -169,7 +165,7 @@ function Show-TaskDone {
 
 function Show-TaskSkip {
     param([string]$Reason)
-    Write-Host ""
+    Write-C ""
     Write-C "  [-] 略過 / Skipped: $Reason" -Color DarkGray
 }
 
@@ -200,8 +196,8 @@ function Show-Header {
     Write-C ""
     Write-C "  +========================================================+" -Color Cyan
     Write-C "  |                                                        |" -Color Cyan
-    Write-C "  |        Windows 系統安全清理工具  v3.4                 |" -Color Yellow
-    Write-C "  |        WinCleaner - Windows Security Cleaner v3.4     |" -Color White
+    Write-C "  |        Windows 系統安全清理工具  v3.5                 |" -Color Yellow
+    Write-C "  |        WinCleaner - Windows Security Cleaner v3.5     |" -Color White
     Write-C "  |                                                        |" -Color Cyan
     Write-C "  +========================================================+" -Color Cyan
     Write-C ""
@@ -394,7 +390,7 @@ function Clear-BrowserCache {
         foreach ($prof in $profiles) {
             foreach ($cd in $chromeCacheDirs) { $freed += Remove-Contents "$chromeBase\$prof\$cd" }
         }
-        Write-Host ""; Write-C "    Chrome: $(Format-Bytes $freed)" -Color DarkGreen
+        Write-C ""; Write-C "    Chrome: $(Format-Bytes $freed)" -Color DarkGreen
     }
 
     # Edge (Chromium)
@@ -470,7 +466,7 @@ function Clear-AppCache {
     $lf = [long]0
     $lf += Remove-Contents $lineCache
     $lf += Remove-Contents $lineLogs -Filter "*.log"
-    if ($lf -gt 0) { Write-Host ""; Write-C "    LINE: $(Format-Bytes $lf)" -Color DarkGreen }
+    if ($lf -gt 0) { Write-C ""; Write-C "    LINE: $(Format-Bytes $lf)" -Color DarkGreen }
     $freed += $lf
 
     # ── Discord ────────────────────────────────────────────────
@@ -481,7 +477,7 @@ function Clear-AppCache {
         $df += Remove-Contents "$discordBase\$cd"
     }
     if ($df -gt 0) {
-        if ($lf -eq 0) { Write-Host "" }
+        if ($lf -eq 0) { Write-C "" }
         Write-C "    Discord: $(Format-Bytes $df)" -Color DarkGreen
     }
     $freed += $df
@@ -536,7 +532,7 @@ function Clear-AppCache {
     }
 
     if ($freed -eq 0) {
-        Write-Host ""
+        Write-C ""
         Write-C "  [v] 未找到相關 App / No apps found" -Color DarkGray
     }
 
@@ -585,7 +581,7 @@ function Clear-ThumbnailCache {
     try {
         if ($script:WinVersion -ge 8) { & ie4uinit.exe -show 2>$null }
         if (Test-Path $thumbPath) {
-            Write-Host ""
+            Write-C ""
             Write-C "  [!] 桌面將短暫消失約 1~2 秒，屬正常現象 / Desktop will briefly disappear for ~2 sec" -Color Yellow
             Start-Sleep -Milliseconds 500
             Stop-Process -Name explorer -Force -EA SilentlyContinue
@@ -668,7 +664,7 @@ function Clear-WindowsOld {
     if (-not (Test-Path $path)) { Show-TaskSkip "找不到 Windows.old"; return }
 
     $before = Get-FolderSize $path
-    Write-Host ""
+    Write-C ""
     Write-C "  !! 注意：此資料夾約 $(Format-Bytes $before)，刪除後無法還原！" -Color Red
     Write-C "     這是升級前的舊系統備份，刪掉後如需退回舊版 Windows 將無法進行" -Color Yellow
     Write-C "     確認刪除? [Y/N]: " -Color Yellow -NoNewLine
@@ -717,7 +713,7 @@ function Clear-LogFiles {
 
 function Optimize-RAM {
     Show-TaskStart "RAM Optimization" "記憶體最佳化"
-    Write-Host ""
+    Write-C ""
     Write-C "  [!] 注意：此功能將閒置記憶體移至分頁檔，SSD 電腦效果較好，HDD 電腦可能短暫變慢" -Color DarkYellow
     Write-C "      Note: Moves idle RAM to pagefile. Better on SSD; HDD may feel slower briefly." -Color DarkGray
     $before   = Get-OSInfoCompat
@@ -745,7 +741,7 @@ public class MemCleaner {
         $after   = Get-OSInfoCompat
         $afterMB = if ($after) { [long]([math]::Round($after.FreePhysicalMemory / 1KB, 0)) } else { $null }
 
-        Write-Host ""
+        Write-C ""
         if ($null -ne $beforeMB -and $null -ne $afterMB) {
             $gainMB = [math]::Max(0, $afterMB - $beforeMB)
             Record-Result "RAM" "記憶體" ([long]($gainMB * 1MB))
@@ -760,7 +756,7 @@ public class MemCleaner {
             Write-C "  [v] 記憶體最佳化已完成 / RAM optimization done" -Color Green
         }
     } catch {
-        Write-Host ""
+        Write-C ""
         Write-C "  [-] 記憶體最佳化失敗" -Color DarkGray
     }
 }
