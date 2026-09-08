@@ -6,7 +6,7 @@
     安全、雙語 (中/英) 系統清理工具，支援 Windows 7 ~ 11
     Safe bilingual (Chinese/English) system cleaner for Windows 7-11
 .VERSION
-    3.8
+    3.9
 .NOTES
     以系統管理員身份執行 / Run as Administrator
 #>
@@ -40,20 +40,33 @@ function Write-C {
 }
 
 if ($PSVersionTable.PSVersion.Major -ge 3) {
-    # 原生 Windows 7 的 PowerShell 2.0 主控台（舊版 conhost.exe + 預設點陣字型）對 codepage 65001
-    # (UTF-8) 的支援不完整，就算把 chcp 跟 Console.OutputEncoding 都設成 UTF-8，中文一樣會顯示亂碼
-    # （這是實機測試證實的，不是理論）。PowerShell 3+ / Windows 8 以後主控台對 UTF-8 支援較完整，
-    # 才在這裡切換；PS2 維持系統原生 codepage（例如繁體中文的 950）不去動，本來就能正確顯示中文
-    # Stock Windows 7's PowerShell 2.0 console (legacy conhost.exe + default raster font) has
-    # incomplete support for codepage 65001 (UTF-8) — Chinese still garbles even with both chcp
-    # and Console.OutputEncoding forced to UTF-8 (confirmed by real-device testing, not just
-    # theory). Only switch to UTF-8 on PS3+/Windows 8+, where console UTF-8 support is more
-    # complete; leave PS2 on the OS's native codepage (e.g. 950 for zh-TW), which already
-    # displays Chinese correctly without any override
+    # PowerShell 3+ / Windows 8 以後主控台對 UTF-8 支援較完整，切換成 UTF-8
+    # PS3+/Windows 8+ consoles have more complete UTF-8 support, so switch to it
     try {
         & chcp.com 65001 | Out-Null
         [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
         $OutputEncoding = [System.Text.Encoding]::UTF8
+    } catch { }
+} else {
+    # 原生 Windows 7 的 PowerShell 2.0 主控台用的是舊版點陣字型（Raster Fonts），這種字型完全沒有
+    # UTF-8 (codepage 65001) 對應的字型表，就算 codepage 跟 Console.OutputEncoding 都已經一致設成
+    # 65001，中文還是會顯示亂碼（v3.8 診斷輸出實測證實：這台機器的主控台其實早就預設在 65001，
+    # 不是我們設的，但一樣是亂碼，可見問題出在字型而非設定沒對齊）。點陣字型唯一能正確顯示中文
+    # 的組合，是系統原生的 ANSI codepage（繁體中文是 950/Big5），所以要主動切過去，而不是維持
+    # 環境當下的 codepage（環境當下可能已經被別的東西改成不相容的 65001 了）
+    # Stock Windows 7's PowerShell 2.0 console uses the legacy Raster Fonts, which have no
+    # glyph table for codepage 65001 (UTF-8) at all — Chinese still garbles even when codepage
+    # and Console.OutputEncoding both already agree on 65001 (confirmed by the v3.8 diagnostic:
+    # this console's codepage was already 65001 by default, not set by us, yet still garbled —
+    # proving it's a font limitation, not a mismatch). Raster fonts only render correctly with
+    # the OS's native ANSI codepage (950/Big5 for zh-TW), so actively switch to that instead of
+    # leaving whatever codepage happens to already be active (which may itself be an
+    # incompatible 65001 set by something else in the launch chain)
+    try {
+        $sysCP = [System.Text.Encoding]::Default.CodePage
+        & chcp.com $sysCP | Out-Null
+        [Console]::OutputEncoding = [System.Text.Encoding]::Default
+        $OutputEncoding = [System.Text.Encoding]::Default
     } catch { }
 }
 
@@ -80,7 +93,7 @@ if (-not (Test-IsAdmin)) {
 }
 
 try {
-    $Host.UI.RawUI.WindowTitle = "WinCleaner v3.8 - Windows 系統清理工具"
+    $Host.UI.RawUI.WindowTitle = "WinCleaner v3.9 - Windows 系統清理工具"
     $Host.UI.RawUI.BufferSize  = New-Object System.Management.Automation.Host.Size(120, 3000)
     $Host.UI.RawUI.WindowSize  = New-Object System.Management.Automation.Host.Size(82, 42)
 } catch { }
@@ -211,8 +224,8 @@ function Show-Header {
     Write-C ""
     Write-C "  +========================================================+" -Color Cyan
     Write-C "  |                                                        |" -Color Cyan
-    Write-C "  |        Windows 系統安全清理工具  v3.8                 |" -Color Yellow
-    Write-C "  |        WinCleaner - Windows Security Cleaner v3.8     |" -Color White
+    Write-C "  |        Windows 系統安全清理工具  v3.9                 |" -Color Yellow
+    Write-C "  |        WinCleaner - Windows Security Cleaner v3.9     |" -Color White
     Write-C "  |                                                        |" -Color Cyan
     Write-C "  +========================================================+" -Color Cyan
     Write-C ""
@@ -1045,29 +1058,6 @@ function Show-Summary {
 # ============================================================
 
 $script:WinVersion = Get-WindowsVersion
-
-# ============================================================
-# TEMP DIAGNOSTIC (v3.8) - 中文亂碼一直查不出根因，先印出實際編碼狀態
-# 用純 ASCII/數字輸出，不受亂碼問題影響。確認根因後這段會移除
-# Chinese mojibake root cause still unconfirmed after several fixes that
-# didn't change the symptom at all. Dump actual encoding state in plain
-# ASCII/numbers (immune to the mojibake itself) before guessing again.
-# This block will be removed once the real cause is confirmed.
-# ============================================================
-[Console]::WriteLine("========== DIAG (v3.8) ==========")
-try { [Console]::WriteLine("chcp raw output below:") ; & chcp.com } catch { [Console]::WriteLine("chcp failed: " + $_.Exception.Message) }
-try { [Console]::WriteLine("Console.OutputEncoding = " + [Console]::OutputEncoding.EncodingName + " (CodePage " + [Console]::OutputEncoding.CodePage + ")") } catch { [Console]::WriteLine("OutputEncoding read failed: " + $_.Exception.Message) }
-try { [Console]::WriteLine("Console.InputEncoding  = " + [Console]::InputEncoding.EncodingName + " (CodePage " + [Console]::InputEncoding.CodePage + ")") } catch { [Console]::WriteLine("InputEncoding read failed: " + $_.Exception.Message) }
-try { [Console]::WriteLine("System Default ANSI Encoding = " + [System.Text.Encoding]::Default.EncodingName + " (CodePage " + [System.Text.Encoding]::Default.CodePage + ")") } catch { [Console]::WriteLine("Default encoding read failed: " + $_.Exception.Message) }
-try { [Console]::WriteLine("PSCulture = " + $PSCulture + "  PSUICulture = " + $PSUICulture) } catch { }
-try { [Console]::WriteLine("OutputEncoding var = " + $OutputEncoding.EncodingName + " (CodePage " + $OutputEncoding.CodePage + ")") } catch { }
-[Console]::WriteLine("PSVersion = " + $PSVersionTable.PSVersion.ToString())
-[Console]::WriteLine("==================================")
-[Console]::WriteLine("Press any key to continue to the menu...")
-$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-# ============================================================
-# END TEMP DIAGNOSTIC
-# ============================================================
 
 while ($true) {
     $script:TotalFreed  = [long]0
