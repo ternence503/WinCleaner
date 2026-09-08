@@ -1,4 +1,4 @@
-# WinCleaner v3.2 - Windows 系統安全清理工具
+# WinCleaner v3.3 - Windows 系統安全清理工具
 
 一款安全、有感、小白也能上手的 Windows 系統清理工具。
 清理完會告訴你釋放了多少空間，讓你真的感受到差異。
@@ -40,6 +40,10 @@ Windows 7 / 8 / 8.1 / 10 / 11（所有版本）
 - 啟動項目停用可隨時從工作管理員還原
 
 ## 更新日誌
+
+### v3.3（2026-09-08，實機 Windows 7 測試後修正）
+- 修正：主選單用了 `-in` 運算子（PowerShell 3.0+ 才有語法），原生 Win7 的 PowerShell 2.0 連整支腳本都無法解析，一啟動就報 parse error 閃退
+- 修正：啟動項目管理用 `[PSCustomObject]@{}` 轉換 hashtable 是 PS3+ 語意，在 PowerShell 2.0 上不會產生正確的具名屬性，改用 `New-Object PSObject -Property @{}`
 
 ### v3.2（2026-09-04）
 - 修正：原生 Windows 7（PowerShell 2.0）讀不到系統資訊、記憶體最佳化完全失效（`Get-CimInstance` 需要 PS3+，改為自動 fallback 回 `Get-WmiObject`）

@@ -6,7 +6,7 @@
     安全、雙語 (中/英) 系統清理工具，支援 Windows 7 ~ 11
     Safe bilingual (Chinese/English) system cleaner for Windows 7-11
 .VERSION
-    3.2
+    3.3
 .NOTES
     以系統管理員身份執行 / Run as Administrator
 #>
@@ -44,7 +44,7 @@ if (-not (Test-IsAdmin)) {
 }
 
 try {
-    $Host.UI.RawUI.WindowTitle = "WinCleaner v3.2 - Windows 系統清理工具"
+    $Host.UI.RawUI.WindowTitle = "WinCleaner v3.3 - Windows 系統清理工具"
     $Host.UI.RawUI.BufferSize  = New-Object System.Management.Automation.Host.Size(120, 3000)
     $Host.UI.RawUI.WindowSize  = New-Object System.Management.Automation.Host.Size(82, 42)
 } catch { }
@@ -184,8 +184,8 @@ function Show-Header {
     Write-C ""
     Write-C "  +========================================================+" -Color Cyan
     Write-C "  |                                                        |" -Color Cyan
-    Write-C "  |        Windows 系統安全清理工具  v3.2                 |" -Color Yellow
-    Write-C "  |        WinCleaner - Windows Security Cleaner v3.2     |" -Color White
+    Write-C "  |        Windows 系統安全清理工具  v3.3                 |" -Color Yellow
+    Write-C "  |        WinCleaner - Windows Security Cleaner v3.3     |" -Color White
     Write-C "  |                                                        |" -Color Cyan
     Write-C "  +========================================================+" -Color Cyan
     Write-C ""
@@ -774,7 +774,9 @@ function Get-StartupItems {
                     if ($approvedVal -and $approvedVal[0] -eq 3) { $isDisabled = $true }
                 } catch { }
 
-                $items += [PSCustomObject]@{
+                # 用 New-Object 而非 [PSCustomObject] cast，因為後者的 hashtable 自動轉換是 PS3+ 語意，
+                # 在 PowerShell 2.0（原生 Win7）上不會正確產生具名屬性
+                $items += New-Object PSObject -Property @{
                     Name       = $name
                     Path       = $val
                     Scope      = $rp.Scope
@@ -1042,7 +1044,7 @@ while ($true) {
         "4" {
             Show-SystemInfo
         }
-        { $_ -in "Q","離開","EXIT","QUIT" } {
+        { @("Q","離開","EXIT","QUIT") -contains $_ } {
             Write-C ""
             Write-C "  感謝使用！再見！/ Thank you! Goodbye!" -Color Cyan
             Write-C ""
